@@ -296,6 +296,10 @@ claims success only if the matching assistant reply is observed. It does not
 use the input box or execute files. The probe now returns scrubbed diagnostics
 after a bounded wait instead of hanging on a narrow reply-shape assumption. Add
 `--progress` to print scrubbed wait markers to stderr during longer model runs.
+After the exact marker is observed, it keeps the IPC connection open briefly
+(`--settle-timeout`, default 30 seconds) and reports scrubbed post-marker stream
+diagnostics to help distinguish early disconnects from frontstage turn-state
+issues.
 
 Please include:
 

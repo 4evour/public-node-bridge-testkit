@@ -257,6 +257,30 @@ def bump_method_count(counts: dict[str, int], frame: dict[str, Any]) -> None:
     counts[method] = counts.get(method, 0) + 1
 
 
+def change_metadata(frame: dict[str, Any]) -> tuple[str | None, int | None]:
+    params = frame.get("params")
+    if not isinstance(params, dict):
+        return None, None
+    change = params.get("change")
+    if not isinstance(change, dict):
+        return None, None
+    change_type = change.get("type")
+    revision = change.get("revision")
+    return (
+        str(change_type) if change_type is not None else None,
+        int(revision) if isinstance(revision, int) else None,
+    )
+
+
+def update_state_counts(counts: dict[str, int], frame: dict[str, Any]) -> None:
+    for text in iter_strings(frame):
+        normalized = text.strip().lower()
+        if normalized in {"completed", "complete", "done", "idle", "finished"}:
+            counts[normalized] = counts.get(normalized, 0) + 1
+        if normalized in {"inprogress", "in_progress", "running", "streaming", "thinking"}:
+            counts[normalized] = counts.get(normalized, 0) + 1
+
+
 def inspect_observed_frame(
     frame: dict[str, Any],
     conversation_id: str,
@@ -268,6 +292,61 @@ def inspect_observed_frame(
     conversation_seen = frame.get("type") == "broadcast" and frame_belongs_to_conversation(frame, conversation_id)
     exact_seen = exact_expected_seen(frame, conversation_id, expected)
     return expected_seen, conversation_seen, exact_seen
+
+
+def observe_settle(
+    k: Kernel32,
+    handle: object,
+    conversation_id: str,
+    timeout: float,
+    show_progress: bool = False,
+) -> tuple[dict[str, Any], int]:
+    deadline = time.monotonic() + timeout
+    discovery_replies = 0
+    frames = 0
+    conversation_frames = 0
+    methods: dict[str, int] = {}
+    change_types: dict[str, int] = {}
+    revisions: list[int] = []
+    state_keywords: dict[str, int] = {}
+    progress(show_progress, "\n[settle] observing post-marker stream", end="")
+    while time.monotonic() < deadline:
+        try:
+            frame = read_frame(k, handle, max(0.1, min(5.0, deadline - time.monotonic())))
+        except TimeoutError:
+            progress(show_progress, ".", end="")
+            continue
+        progress_frame(show_progress, frame)
+        frames += 1
+        if maybe_answer_discovery(k, handle, frame):
+            discovery_replies += 1
+            continue
+        bump_method_count(methods, frame)
+        if not frame_belongs_to_conversation(frame, conversation_id):
+            continue
+        conversation_frames += 1
+        change_type, revision = change_metadata(frame)
+        if change_type:
+            change_types[change_type] = change_types.get(change_type, 0) + 1
+        if revision is not None:
+            revisions.append(revision)
+        update_state_counts(state_keywords, frame)
+    return {
+        "settle_timeout_seconds": timeout,
+        "frames_seen": frames,
+        "conversation_frames_seen": conversation_frames,
+        "methods_seen": methods,
+        "change_types_seen": change_types,
+        "revision_min": min(revisions) if revisions else None,
+        "revision_max": max(revisions) if revisions else None,
+        "state_keywords_seen": state_keywords,
+        "terminal_state_hint_seen": any(
+            state_keywords.get(key, 0) > 0 for key in ("completed", "complete", "done", "idle", "finished")
+        ),
+        "still_running_hint_seen": any(
+            state_keywords.get(key, 0) > 0 for key in ("inprogress", "in_progress", "running", "streaming", "thinking")
+        ),
+    }, discovery_replies
 
 
 def scrub_start_response(response: dict[str, Any]) -> dict[str, Any]:
@@ -298,6 +377,7 @@ def main() -> int:
     parser.add_argument("--pipe", default=r"\\.\pipe\codex-ipc")
     parser.add_argument("--marker", default="NODEC_IPC_OK_001")
     parser.add_argument("--timeout", type=float, default=120.0)
+    parser.add_argument("--settle-timeout", type=float, default=30.0)
     parser.add_argument("--open-timeout", type=float, default=3.0)
     parser.add_argument("--read-timeout", type=float, default=10.0)
     parser.add_argument("--progress", action="store_true", help="Print scrubbed wait progress to stderr.")
@@ -429,6 +509,17 @@ def main() -> int:
             conversation_broadcast_seen = conversation_broadcast_seen or seen_conversation
             observed_exact = observed_exact or seen_exact
 
+        settle_diagnostics: dict[str, Any] | None = None
+        if task_sent and observed_exact and args.settle_timeout > 0:
+            settle_diagnostics, replies = observe_settle(
+                k,
+                handle,
+                args.conversation_id,
+                args.settle_timeout,
+                show_progress=args.progress,
+            )
+            discovery_replies += replies
+
         ok = bool(task_sent and observed_exact)
         print(json.dumps({
             "ok": ok,
@@ -450,6 +541,7 @@ def main() -> int:
                 "methods_observed_after_start": observed_methods,
                 "conversation_broadcast_seen": conversation_broadcast_seen,
                 "expected_marker_seen_anywhere": expected_seen_anywhere,
+                "post_marker_settle": settle_diagnostics,
             },
             "client_discovery_replies_sent": discovery_replies,
             "claim": "node_c_codex_ipc_start_turn_exact_reply_passed" if ok else "node_c_codex_ipc_start_turn_probe_incomplete",

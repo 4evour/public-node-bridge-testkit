@@ -133,14 +133,17 @@ python3 run_node_c_avatar.py
 The fourth useful test, when the maintainer provides a relay URL and token, is:
 
 ```bash
-python3 run_node_c_remote_client.py --relay-url RELAY_URL --token TOKEN
+python3 connect_node.py --relay-url RELAY_URL --token TOKEN
 ```
 
 On Windows:
 
 ```powershell
-py run_node_c_remote_client.py --relay-url RELAY_URL --token TOKEN
+py connect_node.py --relay-url RELAY_URL --token TOKEN
 ```
+
+`connect_node.py` installs the local Node-C avatar if needed, reports health,
+polls the relay, completes one queued safe task, and prints one JSON result.
 
 Please include:
 
@@ -295,6 +298,35 @@ python3 send_node_c_file_probe.py --relay-url RELAY_URL --token TOKEN
 The tester still runs the same client command. This proves only sandboxed file
 delivery with SHA-256 verification. It does not prove real Codex IPC, formal
 ACK, external send, file execution, persistent service, or long-running
+autonomy.
+
+## One-Step Connect
+
+Preferred tester command:
+
+```bash
+python3 connect_node.py --relay-url RELAY_URL --token TOKEN
+```
+
+On Windows:
+
+```powershell
+py connect_node.py --relay-url RELAY_URL --token TOKEN
+```
+
+The same command can also read a Yuanjie connect card from stdin:
+
+```text
+YUANJIE_CONNECT_V1
+node_id=node-c
+relay=RELAY_URL
+connect_code=TOKEN
+mode=safe_preflight
+boundary=no_shell,no_file_exec,no_external_send,no_formal_ack
+```
+
+It compresses install, health, polling, task handling, and result output into
+one entrypoint. It still does not prove Codex Desktop IPC or production-ready
 autonomy.
 
 ## Codex CLI Local Probe

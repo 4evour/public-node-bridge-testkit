@@ -206,6 +206,21 @@ py run_node_c_desktop_visible_preflight.py
 This only checks whether a visible window title matches `Codex`. It does not
 click, type, inject a task, or read a conversation.
 
+Run the read-only Windows Codex IPC discovery probe:
+
+```powershell
+py run_node_c_codex_ipc_discovery.py
+```
+
+Optional local listening-port hints:
+
+```powershell
+py run_node_c_codex_ipc_discovery.py --include-ports
+```
+
+This only reports process, path, and optional localhost port hints. It does not
+use the input box, send a task, read a conversation, or claim IPC support.
+
 Please include:
 
 ```text

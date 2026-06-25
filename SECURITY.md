@@ -31,7 +31,12 @@ No payment, deletion, approval, or authorization actions
 No private Yuanjie endpoints
 No Aliyun token or route
 No Codex Desktop IPC implementation
+No input-box automation
 ```
+
+`run_node_c_codex_ipc_discovery.py` is read-only. It only reports local process,
+path, and optional localhost port hints for deciding whether a future IPC
+adapter is possible.
 
 ## Reporting Security Issues
 

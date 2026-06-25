@@ -208,14 +208,22 @@ def iter_strings(value: Any) -> list[str]:
     return found
 
 
-def exact_expected_seen(frame: dict[str, Any], conversation_id: str, expected: str) -> bool:
-    if frame.get("type") != "broadcast" or frame.get("method") != "thread-stream-state-changed":
-        return False
+def frame_belongs_to_conversation(frame: dict[str, Any], conversation_id: str) -> bool:
     params = frame.get("params")
-    if not isinstance(params, dict) or params.get("conversationId") != conversation_id:
+    if isinstance(params, dict) and params.get("conversationId") == conversation_id:
+        return True
+    return conversation_id in iter_strings(frame)
+
+
+def exact_expected_seen(frame: dict[str, Any], conversation_id: str, expected: str) -> bool:
+    if not frame_belongs_to_conversation(frame, conversation_id):
         return False
-    strings = iter_strings(params.get("change"))
-    return any(text.strip() == expected for text in strings)
+    return any(text.strip() == expected for text in iter_strings(frame))
+
+
+def bump_method_count(counts: dict[str, int], frame: dict[str, Any]) -> None:
+    method = str(frame.get("method") or frame.get("type") or "unknown")
+    counts[method] = counts.get(method, 0) + 1
 
 
 def scrub_start_response(response: dict[str, Any]) -> dict[str, Any]:
@@ -245,7 +253,7 @@ def main() -> int:
     parser.add_argument("--conversation-id", required=True)
     parser.add_argument("--pipe", default=r"\\.\pipe\codex-ipc")
     parser.add_argument("--marker", default="NODEC_IPC_OK_001")
-    parser.add_argument("--timeout", type=float, default=90.0)
+    parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--open-timeout", type=float, default=3.0)
     parser.add_argument("--read-timeout", type=float, default=5.0)
     args = parser.parse_args()
@@ -321,15 +329,25 @@ def main() -> int:
         task_sent = start_response.get("type") == "response" and start_response.get("resultType") == "success"
 
         observed_exact = False
+        expected_seen_anywhere = False
+        conversation_broadcast_seen = False
+        observed_frame_count = 0
+        observed_methods: dict[str, int] = {}
         deadline = time.monotonic() + args.timeout
         while task_sent and time.monotonic() < deadline:
             try:
                 frame = read_frame(k, handle, max(0.1, min(1.0, deadline - time.monotonic())))
             except TimeoutError:
                 continue
+            observed_frame_count += 1
+            bump_method_count(observed_methods, frame)
             if maybe_answer_discovery(k, handle, frame):
                 discovery_replies += 1
                 continue
+            if any(text.strip() == expected for text in iter_strings(frame)):
+                expected_seen_anywhere = True
+            if frame.get("type") == "broadcast" and frame_belongs_to_conversation(frame, args.conversation_id):
+                conversation_broadcast_seen = True
             if exact_expected_seen(frame, args.conversation_id, expected):
                 observed_exact = True
                 break
@@ -347,6 +365,13 @@ def main() -> int:
             "task_sent_to_codex": task_sent,
             "codex_exact_reply_observed": observed_exact,
             "agent_message": expected if observed_exact else None,
+            "diagnostics": {
+                "observe_timeout_seconds": args.timeout,
+                "frames_observed_after_start": observed_frame_count,
+                "methods_observed_after_start": observed_methods,
+                "conversation_broadcast_seen": conversation_broadcast_seen,
+                "expected_marker_seen_anywhere": expected_seen_anywhere,
+            },
             "client_discovery_replies_sent": discovery_replies,
             "claim": "node_c_codex_ipc_start_turn_exact_reply_passed" if ok else "node_c_codex_ipc_start_turn_probe_incomplete",
             "cannot_claim": cannot_claim(),

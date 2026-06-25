@@ -289,7 +289,8 @@ py run_node_c_codex_ipc_start_turn_probe.py --conversation-id CONVERSATION_ID
 
 This sends only `Reply exactly: NODEC_IPC_OK_001` through Codex Desktop IPC and
 claims success only if the matching assistant reply is observed. It does not
-use the input box or execute files.
+use the input box or execute files. The probe now returns scrubbed diagnostics
+after a short wait instead of hanging on a narrow reply-shape assumption.
 
 Please include:
 

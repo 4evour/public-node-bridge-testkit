@@ -52,6 +52,11 @@ def read_card_from_stdin() -> str:
     return sys.stdin.read()
 
 
+def progress(enabled: bool, message: str) -> None:
+    if enabled:
+        print(message, file=sys.stderr, flush=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Connect Node-C with one safe entrypoint.")
     parser.add_argument("--relay-url", default="")
@@ -59,11 +64,13 @@ def main() -> int:
     parser.add_argument("--node-id", default=DEFAULT_NODE_ID)
     parser.add_argument("--install-dir", default=DEFAULT_INSTALL_DIR)
     parser.add_argument("--timeout", type=float, default=90.0)
-    parser.add_argument("--interval", type=float, default=2.0)
+    parser.add_argument("--interval", type=float, default=1.0)
     parser.add_argument("--max-tasks", type=int, default=1)
     parser.add_argument("--card", default="", help="Inline YUANJIE_CONNECT_V1 card text.")
     parser.add_argument("--card-file", default="", help="Path to a YUANJIE_CONNECT_V1 or YUANJIE_HANDSHAKE_V1 card.")
+    parser.add_argument("--quiet", action="store_true", help="Disable progress messages on stderr.")
     args = parser.parse_args()
+    show_progress = not args.quiet
 
     card_text = args.card or read_card_file(args.card_file) or read_card_from_stdin()
     card = parse_connect_card(card_text)
@@ -87,13 +94,19 @@ def main() -> int:
         }, ensure_ascii=False, indent=2))
         return 1
 
+    progress(show_progress, f"[config] relay={relay} node={node_id}")
     install = install_avatar(node_id=node_id, install_dir=install_dir)
+    progress(show_progress, f"[install] node avatar installed at {install['install_dir']}")
     root, config, state = load_avatar(install_dir)
     health = health_packet(config)
+    progress(show_progress, f"[health] status={health.get('status')} heartbeat={health.get('heartbeat_at')}")
     deadline = time.monotonic() + args.timeout
     completed: list[dict[str, Any]] = []
+    poll_count = 0
 
     while time.monotonic() < deadline and len(completed) < args.max_tasks:
+        poll_count += 1
+        progress(show_progress, f"[poll #{poll_count}] relay={relay} node={node_id}")
         result = run_once(relay, node_id, token=token, sandbox_dir=root)
         if not result.get("ok"):
             updated_state = update_state(root, state, "node_c_connect_poll_failed")
@@ -111,9 +124,11 @@ def main() -> int:
             }, ensure_ascii=False, indent=2))
             return 1
         if result.get("handled"):
+            progress(show_progress, f"[task] task_id={result.get('task_id')} handled=true")
             posted = result.get("posted") if isinstance(result.get("posted"), dict) else {}
             task = posted.get("task") if isinstance(posted.get("task"), dict) else {}
             task_result = task.get("result") if isinstance(task.get("result"), dict) else {}
+            progress(show_progress, f"[submit] task_id={result.get('task_id')} ok={str(bool(posted.get('ok'))).lower()}")
             completed.append({
                 "task_id": result.get("task_id"),
                 "task_type": task.get("task_type"),
@@ -132,6 +147,8 @@ def main() -> int:
             time.sleep(args.interval)
 
     ok = bool(completed)
+    if not ok:
+        progress(show_progress, f"[timeout] waited {args.timeout:g}s, no task found")
     claim = "node_c_one_step_connect_completed_task" if ok else "node_c_one_step_connect_online_no_task"
     updated_state = update_state(root, state, claim)
     print(json.dumps({

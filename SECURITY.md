@@ -18,6 +18,10 @@ Python standard library only
 `file_deliver` writes only the task payload into `.node_c_avatar/inbox/<task_id>/`
 and returns SHA-256. It must not execute the file or read arbitrary local files.
 
+`/dashboard` is an observer page for the relay queue. It shows task status and
+result JSON through the same token boundary as the API. It must not execute
+tasks, automate Codex, send messages, or bypass relay authorization.
+
 ## Not Included
 
 ```text

@@ -144,6 +144,10 @@ py connect_node.py --relay-url RELAY_URL --token TOKEN
 
 `connect_node.py` installs the local Node-C avatar if needed, reports health,
 polls the relay, completes one queued safe task, and prints one JSON result.
+It now prints progress lines to stderr by default (`[config]`, `[health]`,
+`[poll #N]`, `[task]`, `[submit]`) so the terminal does not look stuck while it
+waits for a relay task. Use `--quiet` when a machine-readable run needs only the
+final JSON.
 
 You can also connect from an agent-readable handshake card:
 
@@ -290,7 +294,8 @@ py run_node_c_codex_ipc_start_turn_probe.py --conversation-id CONVERSATION_ID
 This sends only `Reply exactly: NODEC_IPC_OK_001` through Codex Desktop IPC and
 claims success only if the matching assistant reply is observed. It does not
 use the input box or execute files. The probe now returns scrubbed diagnostics
-after a short wait instead of hanging on a narrow reply-shape assumption.
+after a bounded wait instead of hanging on a narrow reply-shape assumption. Add
+`--progress` to print scrubbed wait markers to stderr during longer model runs.
 
 Please include:
 
@@ -313,6 +318,15 @@ Terminal 1:
 ```bash
 python3 -m node_bridge_testkit.relay --port 8765
 ```
+
+Optional queue dashboard:
+
+```text
+http://127.0.0.1:8765/dashboard
+```
+
+The dashboard shows task ids, node ids, task types, status, and result details.
+It does not execute tasks or bypass relay token checks.
 
 Terminal 2:
 

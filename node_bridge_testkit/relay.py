@@ -9,6 +9,7 @@ Yuanjie private infrastructure.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import os
 import time
@@ -101,9 +102,32 @@ class RelayState:
         with self._lock:
             return self._tasks.get(task_id)
 
+    def list_tasks(self, node_id: str = "", status: str = "", summary: bool = False) -> list[dict[str, Any]]:
+        with self._lock:
+            tasks = list(self._tasks.values())
+        rows: list[dict[str, Any]] = []
+        for task in tasks:
+            if node_id and task.target_node != node_id:
+                continue
+            if status and task.status != status:
+                continue
+            if summary:
+                rows.append({
+                    "task_id": task.task_id,
+                    "target_node": task.target_node,
+                    "task_type": task.task_type,
+                    "status": task.status,
+                    "created_at": task.created_at,
+                    "claimed_at": task.claimed_at,
+                    "completed_at": task.completed_at,
+                })
+            else:
+                rows.append(asdict(task))
+        return rows
+
     def stats(self) -> dict[str, Any]:
         with self._lock:
-            counts: dict[str, int] = {}
+            counts: dict[str, int] = {"queued": 0, "in_progress": 0, "completed": 0}
             for task in self._tasks.values():
                 counts[task.status] = counts.get(task.status, 0) + 1
             return {"tasks": len(self._tasks), "by_status": counts}
@@ -144,6 +168,14 @@ class RelayHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _write_html(self, status: int, body: str) -> None:
+        data = body.encode("utf-8")
+        self.send_response(status)
+        self.send_header("content-type", "text/html; charset=utf-8")
+        self.send_header("content-length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
     def _token(self) -> str:
         return str(getattr(self.server, "token", "") or "")
 
@@ -162,6 +194,7 @@ class RelayHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        query = parse_qs(parsed.query)
         if parsed.path == "/health":
             self._write_json(HTTPStatus.OK, {
                 "ok": True,
@@ -169,15 +202,29 @@ class RelayHandler(BaseHTTPRequestHandler):
                 "auth_required": bool(self._token()),
             })
             return
+        if parsed.path == "/dashboard":
+            self._write_html(HTTPStatus.OK, self._dashboard_html())
+            return
         if parsed.path == "/stats":
             if not self._require_auth():
                 return
             self._write_json(HTTPStatus.OK, {"ok": True, "stats": self.state.stats()})
             return
+        if parsed.path == "/tasks":
+            if not self._require_auth():
+                return
+            node_id = query.get("node_id", [""])[0]
+            status = query.get("status", [""])[0]
+            summary = query.get("format", [""])[0] == "summary"
+            self._write_json(HTTPStatus.OK, {
+                "ok": True,
+                "tasks": self.state.list_tasks(node_id=node_id, status=status, summary=summary),
+            })
+            return
         if parsed.path == "/poll":
             if not self._require_auth():
                 return
-            node_id = parse_qs(parsed.query).get("node_id", [""])[0]
+            node_id = query.get("node_id", [""])[0]
             if not node_id:
                 self._write_json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "missing node_id"})
                 return
@@ -194,6 +241,96 @@ class RelayHandler(BaseHTTPRequestHandler):
             self._write_json(HTTPStatus.OK, {"ok": True, "task": asdict(task)})
             return
         self._write_json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not_found"})
+
+    def _dashboard_html(self) -> str:
+        title = html.escape("Node Bridge Dashboard")
+        return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  <style>
+    body {{ font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; color: #1f2937; }}
+    header {{ display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }}
+    input {{ padding: 7px 9px; border: 1px solid #cbd5e1; border-radius: 6px; min-width: 260px; }}
+    .stats {{ display: flex; gap: 10px; margin: 18px 0; flex-wrap: wrap; }}
+    .pill {{ border-radius: 999px; padding: 6px 10px; background: #f1f5f9; font-size: 13px; }}
+    table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
+    th, td {{ border-bottom: 1px solid #e5e7eb; padding: 9px; text-align: left; vertical-align: top; }}
+    th {{ background: #f8fafc; position: sticky; top: 0; }}
+    tr {{ cursor: pointer; }}
+    .queued {{ color: #64748b; font-weight: 700; }}
+    .in_progress {{ color: #2563eb; font-weight: 700; }}
+    .completed {{ color: #059669; font-weight: 700; }}
+    pre {{ white-space: pre-wrap; word-break: break-word; background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; max-height: 320px; overflow: auto; }}
+    .muted {{ color: #64748b; font-size: 12px; }}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Node Bridge Dashboard</h1>
+      <div class="muted">Local relay task queue. Refreshes every second.</div>
+    </div>
+    <label>Token <input id="token" placeholder="optional token"></label>
+  </header>
+  <div class="stats" id="stats"></div>
+  <table>
+    <thead><tr><th>task_id</th><th>node</th><th>type</th><th>status</th><th>created</th></tr></thead>
+    <tbody id="tasks"><tr><td colspan="5">Loading...</td></tr></tbody>
+  </table>
+  <h2>Task detail</h2>
+  <pre id="detail">Click a task row.</pre>
+  <script>
+    const tokenInput = document.getElementById('token');
+    tokenInput.value = localStorage.getItem('node_bridge_token') || '';
+    tokenInput.addEventListener('input', () => localStorage.setItem('node_bridge_token', tokenInput.value));
+    function headers() {{
+      const token = tokenInput.value.trim();
+      return token ? {{'X-Node-Bridge-Token': token}} : {{}};
+    }}
+    function ts(value) {{
+      return value ? new Date(value * 1000).toLocaleTimeString() : '';
+    }}
+    async function getJson(url) {{
+      const res = await fetch(url, {{headers: headers()}});
+      if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+      return await res.json();
+    }}
+    async function refresh() {{
+      try {{
+        const [stats, tasks] = await Promise.all([
+          getJson('/stats'),
+          getJson('/tasks?format=summary')
+        ]);
+        const s = stats.stats || {{}};
+        const by = s.by_status || {{}};
+        document.getElementById('stats').innerHTML =
+          `<span class="pill">total: ${{s.tasks || 0}}</span>` +
+          `<span class="pill queued">queued: ${{by.queued || 0}}</span>` +
+          `<span class="pill in_progress">in_progress: ${{by.in_progress || 0}}</span>` +
+          `<span class="pill completed">completed: ${{by.completed || 0}}</span>`;
+        const rows = tasks.tasks || [];
+        document.getElementById('tasks').innerHTML = rows.length ? rows.map(t =>
+          `<tr data-id="${{t.task_id}}"><td>${{t.task_id}}</td><td>${{t.target_node}}</td><td>${{t.task_type}}</td>` +
+          `<td class="${{t.status}}">${{t.status}}</td><td>${{ts(t.created_at)}}</td></tr>`
+        ).join('') : '<tr><td colspan="5">No tasks</td></tr>';
+        document.querySelectorAll('tr[data-id]').forEach(row => {{
+          row.onclick = async () => {{
+            const data = await getJson('/tasks/' + row.dataset.id);
+            document.getElementById('detail').textContent = JSON.stringify(data.task.result || data.task, null, 2);
+          }};
+        }});
+      }} catch (err) {{
+        document.getElementById('stats').innerHTML = `<span class="pill">error: ${{err.message}}</span>`;
+      }}
+    }}
+    refresh();
+    setInterval(refresh, 1000);
+  </script>
+</body>
+</html>"""
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)

@@ -16,6 +16,7 @@ import ctypes
 import json
 import platform
 import struct
+import sys
 import time
 import uuid
 from ctypes import wintypes
@@ -171,6 +172,11 @@ def request_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4()}"
 
 
+def progress(enabled: bool, message: str, end: str = "\n") -> None:
+    if enabled:
+        print(message, end=end, file=sys.stderr, flush=True)
+
+
 def maybe_answer_discovery(k: Kernel32, handle: object, frame: dict[str, Any]) -> bool:
     if frame.get("type") != "client-discovery-request":
         return False
@@ -182,17 +188,35 @@ def maybe_answer_discovery(k: Kernel32, handle: object, frame: dict[str, Any]) -
     return True
 
 
+def progress_frame(enabled: bool, frame: dict[str, Any]) -> None:
+    if not enabled:
+        return
+    frame_type = frame.get("type")
+    method = frame.get("method")
+    if frame_type == "broadcast":
+        marker = "[B]"
+    elif frame_type == "response":
+        marker = "[R]"
+    elif frame_type == "client-discovery-request":
+        marker = "[D]"
+    else:
+        marker = "[U]"
+    progress(True, marker if not method else f"{marker}{method}", end="")
+
+
 def read_response_for(
     k: Kernel32,
     handle: object,
     request_id_value: str,
     timeout: float,
+    show_progress: bool = False,
 ) -> tuple[dict[str, Any], int, list[dict[str, Any]]]:
     deadline = time.monotonic() + timeout
     discovery_replies = 0
     side_frames: list[dict[str, Any]] = []
     while time.monotonic() < deadline:
         frame = read_frame(k, handle, max(0.1, deadline - time.monotonic()))
+        progress_frame(show_progress, frame)
         if maybe_answer_discovery(k, handle, frame):
             discovery_replies += 1
             continue
@@ -273,9 +297,10 @@ def main() -> int:
     parser.add_argument("--conversation-id", required=True)
     parser.add_argument("--pipe", default=r"\\.\pipe\codex-ipc")
     parser.add_argument("--marker", default="NODEC_IPC_OK_001")
-    parser.add_argument("--timeout", type=float, default=30.0)
+    parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--open-timeout", type=float, default=3.0)
-    parser.add_argument("--read-timeout", type=float, default=5.0)
+    parser.add_argument("--read-timeout", type=float, default=10.0)
+    parser.add_argument("--progress", action="store_true", help="Print scrubbed wait progress to stderr.")
     args = parser.parse_args()
 
     if platform.system().lower() != "windows":
@@ -291,6 +316,7 @@ def main() -> int:
     expected = args.marker.strip()
     prompt = f"Reply exactly: {expected}"
     k = Kernel32()
+    progress(args.progress, "[open] codex-ipc pipe")
     handle, open_error = open_pipe(k, args.pipe, args.open_timeout)
     if handle is None:
         print(json.dumps({
@@ -306,6 +332,7 @@ def main() -> int:
     discovery_replies = 0
     try:
         init_id = request_id("init")
+        progress(args.progress, "[init] initialize", end="")
         write_frame(k, handle, {
             "type": "request",
             "requestId": init_id,
@@ -313,7 +340,10 @@ def main() -> int:
             "params": {"clientType": "yuanjie-node-c-start-turn-probe"},
         })
         buffered_frames: list[dict[str, Any]] = []
-        init_response, replies, side_frames = read_response_for(k, handle, init_id, args.read_timeout)
+        init_response, replies, side_frames = read_response_for(
+            k, handle, init_id, args.read_timeout, show_progress=args.progress
+        )
+        progress(args.progress, "\n[init] done")
         discovery_replies += replies
         buffered_frames.extend(side_frames)
         init_ok = init_response.get("resultType") == "success"
@@ -324,6 +354,7 @@ def main() -> int:
             raise RuntimeError("initialize_failed")
 
         start_id = request_id("start")
+        progress(args.progress, "[start] thread-follower-start-turn", end="")
         start_message = {
             "type": "request",
             "requestId": start_id,
@@ -345,7 +376,10 @@ def main() -> int:
             "timeoutMs": int(args.read_timeout * 1000),
         }
         write_frame(k, handle, start_message)
-        start_response, replies, side_frames = read_response_for(k, handle, start_id, args.read_timeout)
+        start_response, replies, side_frames = read_response_for(
+            k, handle, start_id, args.read_timeout, show_progress=args.progress
+        )
+        progress(args.progress, "\n[start] response received")
         discovery_replies += replies
         buffered_frames.extend(side_frames)
         start_response_scrubbed = scrub_start_response(start_response)
@@ -367,11 +401,22 @@ def main() -> int:
             observed_exact = observed_exact or seen_exact
 
         deadline = time.monotonic() + args.timeout
+        last_progress_at = time.monotonic()
+        progress(args.progress, "[observe] waiting for exact marker", end="")
         while task_sent and not observed_exact and time.monotonic() < deadline:
             try:
-                frame = read_frame(k, handle, max(0.1, min(1.0, deadline - time.monotonic())))
+                frame = read_frame(k, handle, max(0.1, min(5.0, deadline - time.monotonic())))
             except TimeoutError:
+                now = time.monotonic()
+                if args.progress:
+                    if now - last_progress_at >= 10:
+                        elapsed = args.timeout - max(0.0, deadline - now)
+                        progress(True, f"\n[observe] elapsed={elapsed:.0f}s", end="")
+                        last_progress_at = now
+                    else:
+                        progress(True, ".", end="")
                 continue
+            progress_frame(args.progress, frame)
             observed_frame_count += 1
             live_frame_count += 1
             if maybe_answer_discovery(k, handle, frame):

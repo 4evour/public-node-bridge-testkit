@@ -14,7 +14,25 @@ Status:
 implemented
 ```
 
-## V0.2 Public Relay Preflight
+## V0.2 Node-C Local Adapter Preflight
+
+Goal:
+
+```text
+Anyone can run a second-stage node-c adapter preflight locally.
+```
+
+Rules:
+
+```text
+reply_exactly only
+no file channel
+no IPC internals
+no external send
+no formal ACK
+```
+
+## V0.3 Public Relay Preflight
 
 Goal:
 
@@ -33,7 +51,7 @@ no external send
 no formal ACK
 ```
 
-## V0.3 Real Agent Adapter Interface
+## V0.4 Real Agent Adapter Interface
 
 Goal:
 
@@ -50,7 +68,7 @@ submit_result
 heartbeat
 ```
 
-## V0.4 Download-Only File Channel Preflight
+## V0.5 Download-Only File Channel Preflight
 
 Goal:
 

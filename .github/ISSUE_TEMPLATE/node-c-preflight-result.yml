@@ -1,0 +1,46 @@
+name: Node-C local preflight result
+description: Report the result of running run_node_c_preflight.py.
+title: "[Node-C preflight] "
+labels: ["result", "tester"]
+body:
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "Example: Python 3.11.9"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command run
+      description: Paste the exact command you ran.
+      placeholder: "py run_node_c_preflight.py"
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Full output
+      description: Paste the full terminal output. Remove private paths if needed.
+      render: json
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Boundary confirmation
+      options:
+        - label: I did not post private tokens, cookies, credentials, or private screenshots.
+          required: true

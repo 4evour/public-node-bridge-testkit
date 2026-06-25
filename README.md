@@ -51,6 +51,28 @@ Expected output includes:
 }
 ```
 
+Run the Node-C local adapter preflight:
+
+```bash
+python3 run_node_c_preflight.py
+```
+
+On Windows, `py` is also fine:
+
+```powershell
+py run_node_c_preflight.py
+```
+
+Expected output includes:
+
+```json
+{
+  "ok": true,
+  "node_id": "node-c",
+  "claim": "node_c_local_adapter_preflight_passed"
+}
+```
+
 ## Want To Help Test?
 
 If you want to help test external AI node collaboration, open a GitHub issue
@@ -60,6 +82,12 @@ You do not need to understand the full project. The first useful test is only:
 
 ```bash
 python3 run_local_demo.py
+```
+
+The second useful test is:
+
+```bash
+python3 run_node_c_preflight.py
 ```
 
 Please include:
@@ -142,6 +170,15 @@ The mock node returns exactly:
 }
 ```
 
+The Node-C adapter can be run manually too:
+
+```bash
+python3 -m node_bridge_testkit.node_adapter --node-id node-c
+```
+
+It still supports only `reply_exactly` and still denies shell execution, file
+access, external sends, and private endpoint routing.
+
 ## Boundaries
 
 This testkit intentionally does not:
@@ -174,9 +211,10 @@ Do not include private tokens, screenshots with private data, or credentials.
 
 ```text
 V0.1 local relay + mock node + L0/L1 demo
-V0.2 public relay token preflight
-V0.3 real agent adapter interface
-V0.4 download-only file channel preflight
+V0.2 Node-C local adapter preflight
+V0.3 public relay token preflight
+V0.4 real agent adapter interface
+V0.5 download-only file channel preflight
 ```
 
 The public testkit stays separate from Yuanjie core.

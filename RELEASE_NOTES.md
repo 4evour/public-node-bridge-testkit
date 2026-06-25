@@ -1,4 +1,14 @@
-# v0.1.0-local-proof
+# Release Notes
+
+## v0.2.0-dev
+
+- Added `run_node_c_preflight.py` for a safe Node-C local adapter preflight.
+- Added `node_bridge_testkit.node_adapter`, which only handles `reply_exactly`
+  and denies shell execution, file access, external sends, and private routing.
+- Added CI coverage and a GitHub issue template for Node-C preflight results.
+- Updated package version to `0.2.0.dev0`.
+
+## v0.1.0-local-proof
 
 First public local proof for `public-node-bridge-testkit`.
 

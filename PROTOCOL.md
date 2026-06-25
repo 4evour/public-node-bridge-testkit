@@ -85,6 +85,24 @@ task.status == completed
 task.result.agent_message == task.payload.text
 ```
 
+## Node-C Local Adapter Preflight
+
+`run_node_c_preflight.py` uses the same relay and the same `reply_exactly`
+acceptance rule, but targets `node-c` through `node_bridge_testkit.node_adapter`.
+
+Expected result:
+
+```json
+{
+  "status": "ok",
+  "node_id": "node-c",
+  "marker": "NODEC-PREFLIGHT",
+  "agent_message": "STATUS=NODEC_PREFLIGHT_OK; MARKER=NODEC_PREFLIGHT; NEXT=READY_FOR_REVIEW",
+  "execution": "local_adapter_reply_exactly",
+  "safe_mode": true
+}
+```
+
 ## Forbidden In V0.1
 
 ```text

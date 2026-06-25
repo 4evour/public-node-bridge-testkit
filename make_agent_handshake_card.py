@@ -12,6 +12,7 @@ import json
 import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 
 DEFAULT_CAPABILITIES = "reply_exactly,file_deliver,task_package"
@@ -25,6 +26,22 @@ def utc_now() -> datetime:
 def write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def compact_payload(values: dict[str, str]) -> str:
+    parts = ["YJ1"]
+    for key in (
+        "session_id",
+        "relay",
+        "node_id",
+        "role",
+        "connect_code",
+        "capabilities",
+        "boundary",
+        "expires_at",
+    ):
+        parts.append(f"{key}={quote(values[key], safe='')}")
+    return "|".join(parts)
 
 
 def main() -> int:
@@ -42,29 +59,43 @@ def main() -> int:
     out_dir = Path(args.out_dir).expanduser().resolve()
     session_id = f"yj_{utc_now().strftime('%Y%m%d%H%M%S')}_{secrets.token_hex(4)}"
     expires_at = (utc_now() + timedelta(minutes=args.expires_minutes)).isoformat(timespec="seconds")
+    values = {
+        "session_id": session_id,
+        "relay": args.relay_url.rstrip("/"),
+        "node_id": args.node_id,
+        "role": args.role,
+        "connect_code": args.connect_code,
+        "capabilities": args.capabilities,
+        "boundary": args.boundary,
+        "expires_at": expires_at,
+    }
     card = "\n".join([
         "YUANJIE_HANDSHAKE_V1",
-        f"session_id={session_id}",
-        f"relay={args.relay_url.rstrip('/')}",
-        f"node_id={args.node_id}",
-        f"role={args.role}",
-        f"connect_code={args.connect_code}",
-        f"capabilities={args.capabilities}",
-        f"boundary={args.boundary}",
-        f"expires_at={expires_at}",
+        f"session_id={values['session_id']}",
+        f"relay={values['relay']}",
+        f"node_id={values['node_id']}",
+        f"role={values['role']}",
+        f"connect_code={values['connect_code']}",
+        f"capabilities={values['capabilities']}",
+        f"boundary={values['boundary']}",
+        f"expires_at={values['expires_at']}",
         "",
     ])
+    qr_payload = compact_payload(values) + "\n"
     card_path = out_dir / "yuanjie_handshake_card.txt"
+    qr_payload_path = out_dir / "qr_payload.txt"
     command_path = out_dir / "run_connect_node.txt"
     manifest_path = out_dir / "manifest.json"
 
     write_text(card_path, card)
+    write_text(qr_payload_path, qr_payload)
     write_text(command_path, f"py connect_node.py --card-file {card_path} --timeout 90\n")
     write_text(manifest_path, json.dumps({
         "ok": True,
         "schema": "yuanjie_handshake_card_manifest_v0.1",
         "session_id": session_id,
         "card_path": str(card_path),
+        "qr_payload_path": str(qr_payload_path),
         "command_path": str(command_path),
         "expires_at": expires_at,
         "claim": "agent_handshake_card_created",
@@ -81,6 +112,7 @@ def main() -> int:
         "ok": True,
         "session_id": session_id,
         "card_path": str(card_path),
+        "qr_payload_path": str(qr_payload_path),
         "command_path": str(command_path),
         "manifest_path": str(manifest_path),
         "claim": "agent_handshake_card_created",

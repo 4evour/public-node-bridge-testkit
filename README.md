@@ -171,12 +171,22 @@ This creates:
 
 ```text
 .yuanjie_handshake/yuanjie_handshake_card.txt
+.yuanjie_handshake/qr_payload.txt
 .yuanjie_handshake/run_connect_node.txt
 ```
 
 The card starts with `YUANJIE_HANDSHAKE_V1`. A QR code may later carry the exact
 same text, but the protocol itself remains text-first so agents that cannot
 read images can still connect.
+`qr_payload.txt` contains the compressed single-line agent handshake form:
+
+```text
+YJ1|session_id=...|relay=...|node_id=...|connect_code=...|capabilities=...|boundary=...|expires_at=...
+```
+
+This is the intended QR payload. An agent can decode the QR into this text and
+pass it directly to `connect_node.py --card "YJ1|..."` without changing the
+connection protocol.
 
 Run the local task-package preflight:
 

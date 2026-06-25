@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import time
+from urllib.parse import unquote
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +32,16 @@ def parse_connect_card(text: str) -> dict[str, str]:
     values: dict[str, str] = {}
     for raw_line in text.splitlines():
         line = raw_line.strip()
-        if not line or line.startswith("#") or line in {"YUANJIE_CONNECT_V1", "YUANJIE_HANDSHAKE_V1"}:
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("YJ1|") or line.startswith("YUANJIE_QR_V1|"):
+            for part in line.split("|")[1:]:
+                if "=" not in part:
+                    continue
+                key, value = part.split("=", 1)
+                values[key.strip()] = unquote(value.strip())
+            continue
+        if line in {"YUANJIE_CONNECT_V1", "YUANJIE_HANDSHAKE_V1"}:
             continue
         if "=" not in line:
             continue

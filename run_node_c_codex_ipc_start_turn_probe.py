@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import json
+import os
 import platform
 import struct
 import sys
@@ -376,6 +377,8 @@ def main() -> int:
     parser.add_argument("--conversation-id", required=True)
     parser.add_argument("--pipe", default=r"\\.\pipe\codex-ipc")
     parser.add_argument("--marker", default="NODEC_IPC_OK_001")
+    parser.add_argument("--cwd", default=os.getcwd(), help="Thread cwd to send. Use 'null' to send null.")
+    parser.add_argument("--approval-policy", default="never")
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--settle-timeout", type=float, default=30.0)
     parser.add_argument("--open-timeout", type=float, default=3.0)
@@ -394,6 +397,7 @@ def main() -> int:
         return 1
 
     expected = args.marker.strip()
+    cwd = None if args.cwd.strip().lower() in {"", "none", "null"} else os.path.abspath(args.cwd)
     prompt = f"Reply exactly: {expected}"
     k = Kernel32()
     progress(args.progress, "[open] codex-ipc pipe")
@@ -445,7 +449,8 @@ def main() -> int:
                 "conversationId": args.conversation_id,
                 "turnStartParams": {
                     "input": [{"type": "text", "text": prompt, "text_elements": []}],
-                    "cwd": None,
+                    "cwd": cwd,
+                    "approvalPolicy": args.approval_policy,
                     "model": None,
                     "effort": None,
                     "serviceTier": None,
@@ -527,12 +532,19 @@ def main() -> int:
             "pipe": args.pipe,
             "opened": True,
             "conversation_id": args.conversation_id,
+            "cwd": cwd,
             "marker": expected,
             "initialize_ok": init_ok,
             "start_turn_response": start_response_scrubbed,
             "task_sent_to_codex": task_sent,
             "codex_exact_reply_observed": observed_exact,
             "agent_message": expected if observed_exact else None,
+            "gates": {
+                "target_thread_ok": bool(task_sent),
+                "start_turn_ok": bool(task_sent),
+                "completion_observed": bool(observed_exact),
+                "refresh_after_ok": None,
+            },
             "diagnostics": {
                 "observe_timeout_seconds": args.timeout,
                 "frames_observed_total_after_start_request": observed_frame_count,

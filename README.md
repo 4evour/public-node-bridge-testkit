@@ -296,10 +296,21 @@ claims success only if the matching assistant reply is observed. It does not
 use the input box or execute files. The probe now returns scrubbed diagnostics
 after a bounded wait instead of hanging on a narrow reply-shape assumption. Add
 `--progress` to print scrubbed wait markers to stderr during longer model runs.
+The probe sends an explicit `cwd` in `turnStartParams` using the current working
+directory by default. Pass `--cwd C:\path\to\project` to override it, or
+`--cwd null` to send `cwd: null`. It also sends `approvalPolicy: never` by
+default.
 After the exact marker is observed, it keeps the IPC connection open briefly
 (`--settle-timeout`, default 30 seconds) and reports scrubbed post-marker stream
 diagnostics to help distinguish early disconnects from frontstage turn-state
 issues.
+The JSON output includes four gates:
+
+```text
+target_thread_ok -> start_turn_ok -> completion_observed -> refresh_after_ok
+```
+
+`refresh_after_ok` is currently `null`; it is not claimed by this public probe.
 
 Please include:
 

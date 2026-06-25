@@ -4,10 +4,12 @@
 This probe speaks the public shape observed from Codex Desktop's local IPC
 router: 4-byte little-endian frame length followed by a UTF-8 JSON message.
 
-It does not use the input box, click, paste, press keys, read conversations, or
-send a real prompt. By default it only initializes as a temporary IPC client.
-With the default dry request enabled, it sends an empty thread-follower request
-only to observe routing/error behavior; empty params cannot start a real turn.
+It does not use the input box, click, paste, press keys, or send a real prompt.
+By default it only initializes as a temporary IPC client and waits only for the
+matching initialize response.
+
+An optional dry thread-follower request exists behind an explicit flag. That
+mode can receive unrelated IPC broadcasts, so it is not used by default.
 """
 
 from __future__ import annotations
@@ -217,7 +219,7 @@ def main() -> int:
     parser.add_argument("--client-type", default="yuanjie-node-c-ipc-probe")
     parser.add_argument("--open-timeout", type=float, default=3.0)
     parser.add_argument("--read-timeout", type=float, default=3.0)
-    parser.add_argument("--skip-dry-thread-follower", action="store_true")
+    parser.add_argument("--dry-thread-follower", action="store_true", help="Send an empty-params dry thread-follower request after initialize.")
     args = parser.parse_args()
 
     if platform.system().lower() != "windows":
@@ -269,7 +271,7 @@ def main() -> int:
 
         dry_response: dict[str, object] | None = None
         dry_error = ""
-        if init_ok and not args.skip_dry_thread_follower:
+        if init_ok and args.dry_thread_follower:
             dry_request_id = request_id("dry")
             dry_message = {
                 "type": "request",
@@ -311,7 +313,7 @@ def main() -> int:
                 "ignored_frames_before_response": init_ignored,
                 "client_id_present": bool(client_id),
             },
-            "dry_thread_follower": None if args.skip_dry_thread_follower else {
+            "dry_thread_follower": None if not args.dry_thread_follower else {
                 "sent_empty_params_only": True,
                 "route_observed": thread_follower_route_observed,
                 "response": scrub_response(dry_response) if dry_response else None,

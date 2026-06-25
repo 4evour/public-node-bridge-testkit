@@ -256,16 +256,18 @@ py run_node_c_codex_ipc_router_probe.py
 ```
 
 This writes one framed `initialize` request to `\\.\pipe\codex-ipc` and reads
-the router response. It also sends one empty-params dry `thread-follower-start-turn`
-request to observe routing/error behavior. It does not send a real prompt, use
-the input box, read a conversation, or claim that `thread-follower-start-turn`
-is usable for task delivery.
+the matching router response. It does not send a real prompt, use the input
+box, or claim that `thread-follower-start-turn` is usable for task delivery.
 
-For initialize-only mode:
+There is an explicit dry-routing mode for maintainers:
 
 ```powershell
-py run_node_c_codex_ipc_router_probe.py --skip-dry-thread-follower
+py run_node_c_codex_ipc_router_probe.py --dry-thread-follower
 ```
+
+Dry-routing sends one empty-params `thread-follower-start-turn` request only to
+observe routing/error behavior. It can receive unrelated IPC broadcasts, so do
+not use it for public screenshots or logs.
 
 Please include:
 

@@ -377,8 +377,10 @@ def main() -> int:
     parser.add_argument("--conversation-id", required=True)
     parser.add_argument("--pipe", default=r"\\.\pipe\codex-ipc")
     parser.add_argument("--marker", default="NODEC_IPC_OK_001")
+    parser.add_argument("--task-text", default="", help="Optional full prompt text. Defaults to 'Reply exactly: MARKER'.")
     parser.add_argument("--cwd", default=os.getcwd(), help="Thread cwd to send. Use 'null' to send null.")
     parser.add_argument("--approval-policy", default="never")
+    parser.add_argument("--start-timeout", type=float, default=120.0)
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--settle-timeout", type=float, default=30.0)
     parser.add_argument("--open-timeout", type=float, default=3.0)
@@ -398,7 +400,7 @@ def main() -> int:
 
     expected = args.marker.strip()
     cwd = None if args.cwd.strip().lower() in {"", "none", "null"} else os.path.abspath(args.cwd)
-    prompt = f"Reply exactly: {expected}"
+    prompt = args.task_text or f"Reply exactly: {expected}"
     k = Kernel32()
     progress(args.progress, "[open] codex-ipc pipe")
     handle, open_error = open_pipe(k, args.pipe, args.open_timeout)
@@ -451,14 +453,12 @@ def main() -> int:
                     "input": [{"type": "text", "text": prompt, "text_elements": []}],
                     "cwd": cwd,
                     "approvalPolicy": args.approval_policy,
-                    "model": None,
-                    "effort": None,
+                    "attachments": [],
+                    "commentAttachments": [],
                     "serviceTier": None,
-                    "collaborationMode": None,
-                    "responsesapiClientMetadata": {"workspace_kind": "project"},
                 },
             },
-            "timeoutMs": int(args.read_timeout * 1000),
+            "timeoutMs": int(args.start_timeout * 1000),
         }
         write_frame(k, handle, start_message)
         start_response, replies, side_frames = read_response_for(
@@ -534,6 +534,7 @@ def main() -> int:
             "conversation_id": args.conversation_id,
             "cwd": cwd,
             "marker": expected,
+            "start_timeout_ms": int(args.start_timeout * 1000),
             "initialize_ok": init_ok,
             "start_turn_response": start_response_scrubbed,
             "task_sent_to_codex": task_sent,

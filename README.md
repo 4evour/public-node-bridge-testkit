@@ -300,6 +300,12 @@ The probe sends an explicit `cwd` in `turnStartParams` using the current working
 directory by default. Pass `--cwd C:\path\to\project` to override it, or
 `--cwd null` to send `cwd: null`. It also sends `approvalPolicy: never` by
 default.
+The start-turn request shape intentionally mirrors the known-good Mac Desktop
+flow: `sourceClientId`, `version: 1`, `thread-follower-start-turn`, text input
+with `text_elements: []`, `attachments: []`, `commentAttachments: []`, and a
+separate `--start-timeout` for the model turn request. Use `--task-text` only
+when a maintainer asks for a custom prompt; the default exact-reply marker is
+the safest probe.
 After the exact marker is observed, it keeps the IPC connection open briefly
 (`--settle-timeout`, default 30 seconds) and reports scrubbed post-marker stream
 diagnostics to help distinguish early disconnects from frontstage turn-state

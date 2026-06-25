@@ -269,6 +269,17 @@ Dry-routing sends one empty-params `thread-follower-start-turn` request only to
 observe routing/error behavior. It can receive unrelated IPC broadcasts, so do
 not use it for public screenshots or logs.
 
+After initialize passes, a maintainer may ask for a scrubbed conversation
+metadata probe:
+
+```powershell
+py run_node_c_codex_ipc_conversation_probe.py
+```
+
+This listens briefly for Codex IPC broadcasts and prints only scrubbed thread
+metadata such as `conversationId`, `hostId`, change type, and revision. It must
+not print turns, messages, screenshots, files, or any conversation body.
+
 Please include:
 
 ```text

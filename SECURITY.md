@@ -45,6 +45,11 @@ thread-follower mode is maintainer-only because any IPC client may receive
 unrelated broadcasts. It must not use the input box, execute files, or claim
 formal ACK/task delivery.
 
+`run_node_c_codex_ipc_conversation_probe.py` may listen briefly for IPC
+broadcasts, but it must output only scrubbed metadata: `conversationId`,
+`hostId`, change type, and revision. It must not print turns, messages,
+screenshots, files, or conversation bodies.
+
 ## Reporting Security Issues
 
 Open a GitHub issue only for public testkit concerns.

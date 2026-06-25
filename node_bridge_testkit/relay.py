@@ -21,7 +21,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 
-ALLOWED_TASK_TYPES = {"reply_exactly", "file_deliver"}
+ALLOWED_TASK_TYPES = {"reply_exactly", "file_deliver", "desktop_manual_exact"}
 
 
 @dataclass
@@ -54,6 +54,11 @@ class RelayState:
                 raise ValueError("file_deliver requires payload.content_b64")
             if not isinstance(payload.get("sha256"), str):
                 raise ValueError("file_deliver requires payload.sha256")
+        if task_type == "desktop_manual_exact":
+            if not isinstance(payload.get("prompt"), str):
+                raise ValueError("desktop_manual_exact requires payload.prompt")
+            if not isinstance(payload.get("expected"), str):
+                raise ValueError("desktop_manual_exact requires payload.expected")
         task = Task(
             task_id=f"task_{uuid.uuid4().hex[:12]}",
             target_node=target_node,

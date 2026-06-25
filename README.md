@@ -334,6 +334,29 @@ This proves only local Codex CLI availability and one exact tiny reply. It does
 not prove Codex Desktop IPC, frontstage session injection, formal ACK, external
 send, file execution, persistent service, or long-running autonomy.
 
+## Codex Desktop Manual Bridge Probe
+
+If the tester uses Codex Desktop instead of Codex CLI, the next safe preflight is
+manual:
+
+```bash
+python3 run_node_c_desktop_manual_client.py --relay-url RELAY_URL --token TOKEN
+```
+
+On Windows:
+
+```powershell
+py run_node_c_desktop_manual_client.py --relay-url RELAY_URL --token TOKEN
+```
+
+The script prints a prompt. The tester manually sends that prompt to Codex
+Desktop, then pastes the exact Desktop reply back into the script.
+
+This proves only that a relay task can be handed to a human-operated Codex
+Desktop session and returned through Node-C. It does not prove Codex Desktop
+IPC, automatic frontstage injection, formal ACK, external send, file execution,
+persistent service, or long-running autonomy.
+
 ## Boundaries
 
 This testkit intentionally does not:

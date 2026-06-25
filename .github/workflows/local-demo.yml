@@ -14,7 +14,7 @@ jobs:
           python-version: "3.11"
       - name: Compile Python files
         run: |
-          python -m py_compile node_bridge_testkit/__init__.py node_bridge_testkit/relay.py node_bridge_testkit/mock_node.py node_bridge_testkit/node_adapter.py node_bridge_testkit/avatar_runtime.py run_local_demo.py run_node_c_preflight.py install_node_c_avatar.py run_node_c_avatar.py run_remote_relay_demo.py send_node_c_remote_probe.py send_node_c_file_probe.py run_node_c_remote_client.py run_node_c_codex_cli_probe.py
+          python -m py_compile node_bridge_testkit/__init__.py node_bridge_testkit/relay.py node_bridge_testkit/mock_node.py node_bridge_testkit/node_adapter.py node_bridge_testkit/avatar_runtime.py run_local_demo.py run_node_c_preflight.py install_node_c_avatar.py run_node_c_avatar.py run_remote_relay_demo.py send_node_c_remote_probe.py send_node_c_file_probe.py send_node_c_desktop_manual_probe.py run_node_c_remote_client.py run_node_c_codex_cli_probe.py run_node_c_desktop_manual_client.py
       - name: Run local demo
         run: |
           python run_local_demo.py

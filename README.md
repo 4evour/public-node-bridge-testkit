@@ -221,6 +221,15 @@ py run_node_c_codex_ipc_discovery.py --include-ports
 This only reports process, path, and optional localhost port hints. It does not
 use the input box, send a task, read a conversation, or claim IPC support.
 
+If port hints exist, map localhost ports back to Codex process IDs:
+
+```powershell
+py run_node_c_codex_port_owner_probe.py
+```
+
+This only correlates PIDs and ports. It does not connect to any port or claim
+IPC support.
+
 Please include:
 
 ```text

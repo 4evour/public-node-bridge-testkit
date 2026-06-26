@@ -80,6 +80,36 @@ On Windows:
 py run_yuanjie_task_slicer_preflight.py
 ```
 
+Build an avatar workspace card:
+
+```bash
+python3 yuanjie_avatar_workspace_card.py --avatar-id YJ-NODEC-001 --project-id public-node-bridge-testkit
+```
+
+On Windows:
+
+```powershell
+py yuanjie_avatar_workspace_card.py --avatar-id YJ-NODEC-001 --project-id public-node-bridge-testkit
+```
+
+This is the minimal "avatar working seat" layer inspired by persistent agent
+workspaces. It summarizes identity, workspace path, permissions, current task,
+task cache, sandbox inbox, reserved artifact outbox, audit sources, and
+experience candidates. It is read-only. It does not start services, send tasks,
+execute files, claim formal ACK, or write to a global experience pool.
+
+Preflight the workspace card:
+
+```bash
+python3 run_avatar_workspace_card_preflight.py
+```
+
+On Windows:
+
+```powershell
+py run_avatar_workspace_card_preflight.py
+```
+
 Run the Node-C local adapter preflight:
 
 ```bash

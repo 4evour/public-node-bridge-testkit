@@ -6,11 +6,11 @@ Use this before publishing `public-node-bridge-testkit` to GitHub.
 
 - [ ] Repository name does not imply Yuanjie core is open-sourced.
 - [ ] README clearly says this is a public local testkit.
-- [ ] README clearly says it does not prove real Codex IPC or external node connection.
+- [ ] README clearly says each Codex IPC probe only proves its own bounded gate.
 - [ ] SECURITY.md contains the claim boundary.
 - [ ] No private endpoint, token, cookie, or credential is present.
 - [ ] No Aliyun route is present.
-- [ ] No Codex Desktop IPC implementation is present.
+- [ ] No private Codex IPC token, private endpoint, or unsafe automation is present.
 - [ ] No avatar hotfix implementation is present.
 
 ## Runnable Demo

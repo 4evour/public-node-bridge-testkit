@@ -375,6 +375,48 @@ Run the local handshake-card parser preflight:
 python3 run_agent_handshake_card_preflight.py
 ```
 
+On macOS, after opening Codex Desktop, run the Node-B read-only Codex IPC
+discovery probe:
+
+```bash
+python3 run_node_b_codex_ipc_discovery.py
+```
+
+This initializes the local Codex Desktop Unix socket and listens briefly for
+scrubbed thread metadata. It does not send a prompt, use the input box, read
+conversation content, execute files, or claim formal ACK. If no live broadcast
+is observed, it also prints the newest local rollout `conversation_id` candidates
+from filenames only, without reading message content.
+
+If a `conversation_id` is known or selected from the newest rollout candidate,
+a maintainer may ask for one tiny macOS IPC start-turn probe:
+
+```bash
+python3 run_node_b_codex_ipc_start_turn_probe.py --conversation-id CONVERSATION_ID
+```
+
+The default prompt is only `Reply exactly: NODEB_IPC_OK_001` plus a boundary
+line. The probe sends through `thread-follower-start-turn`, then observes local
+Codex rollout evidence for `user_message`, `agent_message`, exact marker, and
+`task_complete`. It does not use the input box, paste, press enter, execute
+files, or send anything externally.
+
+The macOS output uses the same four-gate language:
+
+```text
+target_thread_ok -> start_turn_ok -> completion_observed -> refresh_after_ok
+```
+
+`refresh_after_ok` is not claimed by this public macOS probe. If the Codex UI
+still looks delayed while rollout completion is true, treat it as a frontstage
+refresh/hydration issue instead of sending duplicate prompts.
+
+Before sending the turn, the macOS probe checks scrubbed runtime metadata when
+available. If the target conversation is still `active/inProgress`, it stops
+with `conversation_busy_or_zombie` and sends no task. Open or create an idle
+Codex Desktop conversation, then rerun discovery and start-turn with that
+conversation id.
+
 On Windows, after opening Codex Desktop, run the read-only desktop-visible
 preflight:
 

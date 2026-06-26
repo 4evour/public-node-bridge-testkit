@@ -5,6 +5,10 @@
 - Added `pull_relay_result.py` and `run_relay_result_inbox_preflight.py` so a
   caller can pull a completed relay task into a local `.node_bridge_returns/`
   inbox without relying on chat screenshots.
+- Added macOS Node-B Codex Desktop IPC probes:
+  `run_node_b_codex_ipc_discovery.py` and
+  `run_node_b_codex_ipc_start_turn_probe.py`. They use the local Unix socket
+  and rollout evidence, not the input box.
 - Added `run_node_c_preflight.py` for a safe Node-C local adapter preflight.
 - Added `node_bridge_testkit.node_adapter`, which only handles `reply_exactly`
   and denies shell execution, file access, external sends, and private routing.

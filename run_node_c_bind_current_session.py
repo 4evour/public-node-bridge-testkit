@@ -32,7 +32,12 @@ def request_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4()}"
 
 
-def choose_latest_thread(observations: list[dict[str, Any]], preferred: str = "") -> dict[str, Any] | None:
+def choose_latest_thread(
+    observations: list[dict[str, Any]],
+    runtime_statuses: dict[str, dict[str, Any]],
+    preferred: str = "",
+    allow_zombie: bool = False,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, bool, str]:
     thread_observations = [
         item for item in observations
         if item.get("method") == "thread-stream-state-changed" and item.get("conversationId")
@@ -40,8 +45,22 @@ def choose_latest_thread(observations: list[dict[str, Any]], preferred: str = ""
     if preferred:
         preferred_items = [item for item in thread_observations if item.get("conversationId") == preferred]
         if preferred_items:
-            return preferred_items[-1]
-    return thread_observations[-1] if thread_observations else None
+            selected = preferred_items[-1]
+            status = runtime_statuses.get(str(selected["conversationId"]))
+            zombie, reason = is_zombie_conversation(status) if status else (False, "")
+            return selected, status, zombie, reason
+
+    latest_zombie: tuple[dict[str, Any], dict[str, Any] | None, bool, str] | None = None
+    for item in reversed(thread_observations):
+        conversation_id = str(item["conversationId"])
+        status = runtime_statuses.get(conversation_id)
+        zombie, reason = is_zombie_conversation(status) if status else (False, "")
+        if not zombie or allow_zombie:
+            return item, status, zombie, reason
+        latest_zombie = latest_zombie or (item, status, zombie, reason)
+    if latest_zombie:
+        return latest_zombie
+    return None, None, False, ""
 
 
 def main() -> int:
@@ -51,6 +70,7 @@ def main() -> int:
     parser.add_argument("--node-id", default="node-c")
     parser.add_argument("--conversation-id", default="", help="Prefer this conversationId if observed.")
     parser.add_argument("--cwd", default="", help="Optional expected cwd to record with the binding.")
+    parser.add_argument("--allow-zombie-bind", action="store_true", help="Write a binding even when the observed conversation looks stuck.")
     parser.add_argument("--open-timeout", type=float, default=3.0)
     parser.add_argument("--read-timeout", type=float, default=3.0)
     parser.add_argument("--listen-seconds", type=float, default=8.0)
@@ -84,7 +104,7 @@ def main() -> int:
         return 1
 
     observations: list[dict[str, Any]] = []
-    runtime_status: dict[str, Any] | None = None
+    runtime_statuses: dict[str, dict[str, Any]] = {}
     try:
         init_id = request_id("bind-init")
         write_frame(k, handle, {
@@ -109,13 +129,21 @@ def main() -> int:
             scrubbed = scrub_thread_broadcast(frame)
             if scrubbed:
                 observations.append(scrubbed)
-            target_id = args.conversation_id
-            if not target_id and scrubbed and scrubbed.get("conversationId"):
-                target_id = str(scrubbed["conversationId"])
-            if target_id:
-                runtime_status = extract_runtime_status(frame, str(target_id)) or runtime_status
+                conversation_id = str(scrubbed["conversationId"])
+                status = extract_runtime_status(frame, conversation_id)
+                if status is not None:
+                    runtime_statuses[conversation_id] = status
+            if args.conversation_id:
+                status = extract_runtime_status(frame, args.conversation_id)
+                if status is not None:
+                    runtime_statuses[args.conversation_id] = status
 
-        selected = choose_latest_thread(observations, preferred=args.conversation_id)
+        selected, runtime_status, zombie, zombie_reason = choose_latest_thread(
+            observations,
+            runtime_statuses,
+            preferred=args.conversation_id,
+            allow_zombie=args.allow_zombie_bind,
+        )
         if not init_ok or not selected:
             print(json.dumps({
                 "ok": False,
@@ -129,10 +157,22 @@ def main() -> int:
             return 1
 
         conversation_id = str(selected["conversationId"])
-        zombie = False
-        zombie_reason = ""
-        if runtime_status is not None:
-            zombie, zombie_reason = is_zombie_conversation(runtime_status)
+        if zombie and not args.allow_zombie_bind:
+            print(json.dumps({
+                "ok": False,
+                "platform": "Windows",
+                "opened": True,
+                "initialize_ok": init_ok,
+                "conversation_id": conversation_id,
+                "runtime_status": runtime_status_summary(runtime_status),
+                "zombie": True,
+                "zombie_reason": zombie_reason,
+                "error": "refusing_to_bind_zombie_conversation",
+                "remedy": "Open or create an idle Codex Desktop conversation, then rerun this binder. You may pass --conversation-id for a known idle conversation.",
+                "claim": "node_c_session_binding_zombie_blocked",
+                "cannot_claim": conversation_probe_cannot_claim(),
+            }, ensure_ascii=False, indent=2))
+            return 1
 
         binding = {
             "schema": "node_c_session_binding_v0.1",

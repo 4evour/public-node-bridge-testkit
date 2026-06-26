@@ -447,6 +447,10 @@ py run_node_c_bind_current_session.py --cwd C:\path\to\project
 This writes `.node_c_avatar/session_binding.json` with scrubbed conversation
 metadata. A later start-turn probe can read that file:
 
+The binder refuses to write a binding when the observed frontstage conversation
+looks like a stuck/zombie thread. Open or create an idle Codex Desktop
+conversation and rerun it, or pass a known idle `--conversation-id`.
+
 ```powershell
 py run_node_c_codex_ipc_start_turn_probe.py --session-binding .node_c_avatar\session_binding.json
 ```

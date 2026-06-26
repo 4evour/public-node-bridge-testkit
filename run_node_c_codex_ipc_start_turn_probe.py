@@ -21,6 +21,7 @@ import sys
 import time
 import uuid
 from ctypes import wintypes
+from pathlib import Path
 from typing import Any
 
 
@@ -438,9 +439,20 @@ def runtime_status_summary(status: dict[str, Any] | None) -> dict[str, Any] | No
     }
 
 
+def read_session_binding(path: str) -> dict[str, Any]:
+    if not path:
+        return {}
+    binding_path = Path(path).expanduser()
+    if not binding_path.exists():
+        return {}
+    data = json.loads(binding_path.read_text(encoding="utf-8"))
+    return data if isinstance(data, dict) else {}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Send one tiny Codex Desktop IPC start-turn probe.")
-    parser.add_argument("--conversation-id", required=True)
+    parser.add_argument("--conversation-id", default="")
+    parser.add_argument("--session-binding", default="", help="Path to session_binding.json from run_node_c_bind_current_session.py.")
     parser.add_argument("--pipe", default=r"\\.\pipe\codex-ipc")
     parser.add_argument("--marker", default="NODEC_IPC_OK_001")
     parser.add_argument("--task-text", default="", help="Optional full prompt text. Defaults to 'Reply exactly: MARKER'.")
@@ -454,6 +466,10 @@ def main() -> int:
     parser.add_argument("--no-preflight", action="store_true", help="Skip conversation runtime status check.")
     parser.add_argument("--progress", action="store_true", help="Print scrubbed wait progress to stderr.")
     args = parser.parse_args()
+    session_binding = read_session_binding(args.session_binding)
+    conversation_id = args.conversation_id or str(session_binding.get("conversation_id") or "")
+    if not conversation_id:
+        parser.error("--conversation-id is required unless --session-binding contains conversation_id")
 
     if platform.system().lower() != "windows":
         print(json.dumps({
@@ -512,7 +528,7 @@ def main() -> int:
             progress(args.progress, "[preflight] skipped (--no-preflight)")
         else:
             for frame in buffered_frames:
-                runtime_status = extract_runtime_status(frame, args.conversation_id)
+                runtime_status = extract_runtime_status(frame, conversation_id)
                 if runtime_status is not None:
                     break
             if runtime_status is None:
@@ -529,7 +545,7 @@ def main() -> int:
                         discovery_replies += 1
                         continue
                     buffered_frames.append(frame)
-                    runtime_status = extract_runtime_status(frame, args.conversation_id)
+                    runtime_status = extract_runtime_status(frame, conversation_id)
             is_zombie = False
             if runtime_status is not None:
                 is_zombie, zombie_reason = is_zombie_conversation(runtime_status)
@@ -547,7 +563,7 @@ def main() -> int:
                     "platform": "Windows",
                     "pipe": args.pipe,
                     "opened": True,
-                    "conversation_id": args.conversation_id,
+                    "conversation_id": conversation_id,
                     "stage": "preflight",
                     "error": "conversation_is_zombie",
                     "detail": zombie_reason,
@@ -570,7 +586,7 @@ def main() -> int:
             "method": "thread-follower-start-turn",
             "version": 1,
             "params": {
-                "conversationId": args.conversation_id,
+                "conversationId": conversation_id,
                 "turnStartParams": {
                     "input": [{"type": "text", "text": prompt, "text_elements": []}],
                     "cwd": cwd,
@@ -601,7 +617,7 @@ def main() -> int:
         for frame in buffered_frames:
             observed_frame_count += 1
             seen_marker, seen_conversation, seen_exact = inspect_observed_frame(
-                frame, args.conversation_id, expected, observed_methods
+                frame, conversation_id, expected, observed_methods
             )
             expected_seen_anywhere = expected_seen_anywhere or seen_marker
             conversation_broadcast_seen = conversation_broadcast_seen or seen_conversation
@@ -630,7 +646,7 @@ def main() -> int:
                 discovery_replies += 1
                 continue
             seen_marker, seen_conversation, seen_exact = inspect_observed_frame(
-                frame, args.conversation_id, expected, observed_methods
+                frame, conversation_id, expected, observed_methods
             )
             expected_seen_anywhere = expected_seen_anywhere or seen_marker
             conversation_broadcast_seen = conversation_broadcast_seen or seen_conversation
@@ -641,7 +657,7 @@ def main() -> int:
             settle_diagnostics, replies = observe_settle(
                 k,
                 handle,
-                args.conversation_id,
+                conversation_id,
                 args.settle_timeout,
                 show_progress=args.progress,
             )
@@ -653,10 +669,11 @@ def main() -> int:
             "platform": "Windows",
             "pipe": args.pipe,
             "opened": True,
-            "conversation_id": args.conversation_id,
+            "conversation_id": conversation_id,
             "cwd": cwd,
             "marker": expected,
             "start_timeout_ms": int(args.start_timeout * 1000),
+            "session_binding_path": args.session_binding or None,
             "preflight_runtime_status": runtime_status_summary(runtime_status),
             "initialize_ok": init_ok,
             "start_turn_response": start_response_scrubbed,
@@ -690,7 +707,7 @@ def main() -> int:
             "platform": "Windows",
             "pipe": args.pipe,
             "opened": True,
-            "conversation_id": args.conversation_id,
+            "conversation_id": conversation_id,
             "error": f"{type(exc).__name__}: {exc}",
             "claim": "node_c_codex_ipc_start_turn_probe_error",
             "cannot_claim": cannot_claim(),

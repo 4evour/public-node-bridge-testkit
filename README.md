@@ -320,6 +320,20 @@ start-turn probe:
 py run_node_c_codex_ipc_start_turn_probe.py --conversation-id CONVERSATION_ID
 ```
 
+For a more stable local flow, first bind the currently observed Codex Desktop
+conversation into the local avatar sandbox:
+
+```powershell
+py run_node_c_bind_current_session.py --cwd C:\path\to\project
+```
+
+This writes `.node_c_avatar/session_binding.json` with scrubbed conversation
+metadata. A later start-turn probe can read that file:
+
+```powershell
+py run_node_c_codex_ipc_start_turn_probe.py --session-binding .node_c_avatar\session_binding.json
+```
+
 This sends only `Reply exactly: NODEC_IPC_OK_001` through Codex Desktop IPC and
 claims success only if the matching assistant reply is observed. It does not
 use the input box or execute files. The probe now returns scrubbed diagnostics

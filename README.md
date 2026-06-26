@@ -97,6 +97,11 @@ workspaces. It summarizes identity, workspace path, permissions, current task,
 task cache, sandbox inbox, reserved artifact outbox, audit sources, and
 experience candidates. It is read-only. It does not start services, send tasks,
 execute files, claim formal ACK, or write to a global experience pool.
+The card also exposes module slots for frame source, task slicing, sensors,
+posture decisions, yin-yang experience candidates, low-cost reuse, reality
+anchors, and immune recovery. Some slots are implemented local tools; others
+are explicit candidate slots so the project does not confuse design with
+runtime proof.
 
 Preflight the workspace card:
 

@@ -37,12 +37,15 @@ def main() -> int:
             card.get("schema") == "yuanjie_avatar_workspace_card_v0.1"
             and card.get("avatar_id") == "YJ-NODEC-TEST-001"
             and (card.get("current_task") or {}).get("marker") == "WORKSPACE-CARD-001"
+            and (card.get("modules") or {}).get("task_slicer", {}).get("status") == "implemented_local"
+            and (card.get("modules") or {}).get("experience_yinyang", {}).get("global_pool_write") is False
             and "formal_ack" in card.get("cannot_claim", [])
         )
         print(json.dumps({
             "ok": ok,
             "avatar_id": card.get("avatar_id"),
             "current_task": card.get("current_task"),
+            "module_keys": sorted((card.get("modules") or {}).keys()),
             "claim": "yuanjie_avatar_workspace_card_preflight_passed" if ok else "yuanjie_avatar_workspace_card_preflight_failed",
             "cannot_claim": card.get("cannot_claim"),
         }, ensure_ascii=False, indent=2))

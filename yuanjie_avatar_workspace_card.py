@@ -55,6 +55,64 @@ def list_recent_files(root: Path, relative: str, limit: int = 8) -> list[dict[st
     return items
 
 
+def module_slots(root: Path, cache: dict[str, Any], binding: dict[str, Any]) -> dict[str, Any]:
+    latest_task = cache.get("latest") if isinstance(cache, dict) else None
+    return {
+        "frame_source": {
+            "status": "slot_ready",
+            "input": "current_task + session_binding + local cache summary",
+            "output": "thin task frame for the next slice",
+            "claim": "module_slot_defined",
+        },
+        "task_slicer": {
+            "status": "implemented_local",
+            "entrypoint": "yuanjie_task_slicer.py",
+            "latest_marker": (latest_task or {}).get("marker") if isinstance(latest_task, dict) else None,
+            "claim": "local_tool_available",
+        },
+        "sensor": {
+            "status": "implemented_local",
+            "entrypoint": "run_node_c_connection_state.py",
+            "signals": ["installed", "session_bound", "session_zombie", "task_cache"],
+            "claim": "local_sensor_available",
+        },
+        "posture_equation": {
+            "status": "slot_ready",
+            "decision_values": ["advance", "brake", "recheck_evidence", "compress_frame", "observe"],
+            "claim": "module_slot_defined",
+        },
+        "experience_yinyang": {
+            "status": "candidate_only",
+            "positive_source": "completed_local / task_complete_seen",
+            "negative_source": "failed_local / timeout / zombie / boundary block",
+            "global_pool_write": False,
+            "claim": "candidate_slot_defined",
+        },
+        "low_cost_reuse": {
+            "status": "slot_ready",
+            "reuse_sources": ["task_cache", "rollout observation", "workspace card"],
+            "claim": "module_slot_defined",
+        },
+        "reality_anchor": {
+            "status": "active_boundary",
+            "rule": "claims must follow machine evidence and cannot_claim",
+            "claim": "boundary_rule_attached",
+        },
+        "immune_recovery": {
+            "status": "slot_ready",
+            "triggers": ["session_zombie", "in_progress_timeout", "sha256_mismatch", "missing_task_complete"],
+            "claim": "module_slot_defined",
+        },
+        "workspace_paths": {
+            "task_cache": str(root / "task_cache"),
+            "task_inbox": str(root / "inbox"),
+            "artifact_outbox": str(root / "artifact_outbox"),
+            "session_binding": str(root / "session_binding.json"),
+            "conversation_bound": bool(binding.get("conversation_id")),
+        },
+    }
+
+
 def build_workspace_card(
     install_dir: str | Path = DEFAULT_INSTALL_DIR,
     avatar_id: str = "",
@@ -125,6 +183,7 @@ def build_workspace_card(
             "task_cache_dir": str(root / "task_cache"),
             "codex_rollout_source": ".codex/sessions (read by completion probe)",
         },
+        "modules": module_slots(root, cache, binding),
         "experience_candidates": [],
         "claim": "yuanjie_avatar_workspace_card_created",
         "cannot_claim": CANNOT_CLAIM,

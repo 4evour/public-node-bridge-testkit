@@ -9,6 +9,10 @@
   `run_node_b_codex_ipc_discovery.py` and
   `run_node_b_codex_ipc_start_turn_probe.py`. They use the local Unix socket
   and rollout evidence, not the input box.
+- Added Host Approval Gate task-package probes:
+  `run_approval_gate_task_package_preflight.py` and
+  `send_approval_gate_task_package_probe.py`. They preserve approval metadata
+  as a scrubbed result summary without expanding execution permissions.
 - Added `run_node_c_preflight.py` for a safe Node-C local adapter preflight.
 - Added `node_bridge_testkit.node_adapter`, which only handles `reply_exactly`
   and denies shell execution, file access, external sends, and private routing.

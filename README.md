@@ -268,6 +268,29 @@ This only executes allowlisted package actions on package-contained text. It
 does not run shell commands, execute local files, read private files, or send
 messages.
 
+Run the local Host Approval Gate task-package preflight:
+
+```bash
+python3 run_approval_gate_task_package_preflight.py
+```
+
+On Windows:
+
+```powershell
+py run_approval_gate_task_package_preflight.py
+```
+
+This proves only that `approval_gate` metadata can travel inside a safe
+task-package and return as a scrubbed result summary. It does not prove a real
+approval UI, formal ACK, external send, file execution, or production-ready
+connection.
+
+The maintainer can queue the same safe remote probe:
+
+```bash
+python3 send_approval_gate_task_package_probe.py --relay-url RELAY_URL --token TOKEN --node-id node-c
+```
+
 Run the local task-cache preflight:
 
 ```bash

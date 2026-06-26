@@ -151,6 +151,7 @@ def main() -> int:
                 "action": task_result.get("action"),
                 "line_count": task_result.get("line_count"),
                 "text_sha256": task_result.get("text_sha256"),
+                "approval_gate": task_result.get("approval_gate"),
                 "execution": task_result.get("execution"),
                 "cache_path": result.get("cache_path"),
             })

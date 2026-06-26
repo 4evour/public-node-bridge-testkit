@@ -55,6 +55,33 @@ def safe_cache_id(task_id: str) -> str:
     return safe_filename(task_id)[:80]
 
 
+def summarize_approval_gate(package: dict[str, Any]) -> dict[str, Any] | None:
+    gate = package.get("approval_gate")
+    if not isinstance(gate, dict):
+        return None
+
+    denied = gate.get("denied_capabilities")
+    requested = gate.get("requested_capabilities")
+    cannot_claim = gate.get("cannot_claim")
+    host_decision = gate.get("host_decision")
+    if not isinstance(host_decision, dict):
+        host_decision = {}
+
+    return {
+        "present": True,
+        "gate_id": str(gate.get("gate_id", "")),
+        "status": str(gate.get("status", "")),
+        "decision": str(host_decision.get("decision") or gate.get("decision") or ""),
+        "avatar_id": str(gate.get("avatar_id", "")),
+        "project_id": str(gate.get("project_id", "")),
+        "risk_level": str(gate.get("risk_level", "")),
+        "risk_summary": str(gate.get("risk_summary", "")),
+        "requested_capabilities": requested if isinstance(requested, list) else [],
+        "denied_capabilities": denied if isinstance(denied, list) else [],
+        "cannot_claim": cannot_claim if isinstance(cannot_claim, list) else [],
+    }
+
+
 def write_task_cache(
     sandbox_dir: str | Path,
     task: dict[str, Any],
@@ -206,6 +233,9 @@ def execute_task(task: dict[str, Any], node_id: str, sandbox_dir: str | Path = "
                 result["line_count"] = len(text.splitlines())
             elif action == "hash_text":
                 result["text_sha256"] = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            approval_gate = summarize_approval_gate(package)
+            if approval_gate is not None:
+                result["approval_gate"] = approval_gate
             return result
         except json.JSONDecodeError as exc:
             return {"status": "error", "error": f"invalid_task_package_json: {exc}"}

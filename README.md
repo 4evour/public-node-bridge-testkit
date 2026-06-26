@@ -287,6 +287,35 @@ flow more observable and gives later Codex IPC adapters a local cache to read
 from instead of depending on a live relay response. It still does not prove real
 Codex IPC, external send, formal ACK, or arbitrary file execution.
 
+Pull a completed relay task result back into a local caller-side inbox:
+
+```bash
+python3 pull_relay_result.py --relay-url RELAY_URL --token TOKEN --task-id TASK_ID
+```
+
+On Windows:
+
+```powershell
+py pull_relay_result.py --relay-url RELAY_URL --token TOKEN --task-id TASK_ID
+```
+
+This writes `.node_bridge_returns/TASK_ID.json` with the relay result, marker,
+execution metadata, and explicit `cannot_claim` boundaries. It is only a local
+return inbox for evidence collection. It does not contact Codex Desktop, use
+the input box, execute returned files, send messages, or claim formal ACK.
+
+Preflight the return inbox locally:
+
+```bash
+python3 run_relay_result_inbox_preflight.py
+```
+
+On Windows:
+
+```powershell
+py run_relay_result_inbox_preflight.py
+```
+
 Run the next cached task locally:
 
 ```bash

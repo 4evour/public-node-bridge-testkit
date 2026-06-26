@@ -1,3 +1,4 @@
 .node_c_avatar/
+.node_bridge_returns/
 __pycache__/
 *.pyc

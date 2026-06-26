@@ -16,6 +16,7 @@ Use this before publishing `public-node-bridge-testkit` to GitHub.
 ## Runnable Demo
 
 - [ ] `python3 run_local_demo.py` passes locally.
+- [ ] `python3 run_relay_result_inbox_preflight.py` passes locally.
 - [ ] L0 returns `OK`.
 - [ ] L1 returns `STATUS=READ_OK; MARKER=PUBLIC_L1; NEXT=SMALL_TASK`.
 - [ ] No third-party Python dependency is required.

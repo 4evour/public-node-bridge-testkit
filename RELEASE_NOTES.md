@@ -18,6 +18,12 @@
   `run_node_c_loop_readiness_preflight.py`. They summarize heartbeat, session
   binding, task cache, busy/zombie state, and approval-gate presence without
   contacting Codex or the relay.
+- Added Yuanjie six-card acceptance layer:
+  `yuanjie_acceptance_cards.py` and
+  `run_yuanjie_acceptance_cards_preflight.py`. It folds existing node,
+  task, run-log, evidence, review, and reuse-candidate state into a bounded
+  product-facing review artifact without claiming full loop or production
+  readiness.
 - Added `run_node_c_preflight.py` for a safe Node-C local adapter preflight.
 - Added `node_bridge_testkit.node_adapter`, which only handles `reply_exactly`
   and denies shell execution, file access, external sends, and private routing.

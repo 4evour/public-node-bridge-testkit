@@ -423,6 +423,47 @@ On Windows:
 py run_node_c_loop_readiness_preflight.py
 ```
 
+Build the six Yuanjie acceptance cards:
+
+```bash
+python3 yuanjie_acceptance_cards.py --avatar-id YJ-NODEC-001 --project-id public-node-bridge-testkit --out-dir .yuanjie_acceptance_cards
+```
+
+On Windows:
+
+```powershell
+py yuanjie_acceptance_cards.py --avatar-id YJ-NODEC-001 --project-id public-node-bridge-testkit --out-dir .yuanjie_acceptance_cards
+```
+
+This folds the existing local state into a product-facing review layer:
+
+```text
+node_card
+task_card
+run_log
+evidence_card
+review_panel
+reuse_template
+```
+
+The cards reuse the avatar workspace card, task cache, loop sensor, result
+evidence, approval-gate summary, and reuse-candidate boundary. They do not
+replace those modules. They also do not prove real Codex IPC, frontstage
+injection, formal ACK, external send, file execution, full loop, production
+readiness, or global experience write.
+
+Preflight the acceptance-card layer with a temporary sandbox:
+
+```bash
+python3 run_yuanjie_acceptance_cards_preflight.py
+```
+
+On Windows:
+
+```powershell
+py run_yuanjie_acceptance_cards_preflight.py
+```
+
 Run the local handshake-card parser preflight:
 
 ```bash

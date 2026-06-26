@@ -475,10 +475,10 @@ the target conversation runtime. If it detects an `active` conversation with an
 interrupted or never-running turn, it stops with `conversation_is_zombie` instead
 of sending another task into a stuck thread. Use another `--conversation-id` or
 restart Codex Desktop; `--no-preflight` is available only for diagnostics.
-After the exact marker is observed, it keeps the IPC connection open briefly
-(`--settle-timeout`, default 30 seconds) and reports scrubbed post-marker stream
-diagnostics to help distinguish early disconnects from frontstage turn-state
-issues.
+After the exact marker is observed, it keeps the IPC connection open only
+briefly (`--settle-timeout`, default 8 seconds) and exits early when a terminal
+runtime hint is observed. This avoids making the tester wait behind a diagnostic
+settle loop while still reporting scrubbed post-marker stream diagnostics.
 The JSON output includes four gates:
 
 ```text
@@ -486,6 +486,8 @@ target_thread_ok -> start_turn_ok -> completion_observed -> refresh_after_ok
 ```
 
 `refresh_after_ok` is currently `null`; it is not claimed by this public probe.
+`frontstage_status_hint=runtime_terminal_observed` means IPC saw the runtime
+settle; it is still not a visual UI screenshot claim.
 
 If the UI still shows "thinking", observe the local Codex rollout/session files
 instead of sending another prompt:

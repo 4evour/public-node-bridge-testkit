@@ -311,6 +311,7 @@ def observe_settle(
     change_types: dict[str, int] = {}
     revisions: list[int] = []
     state_keywords: dict[str, int] = {}
+    stopped_early = False
     progress(show_progress, "\n[settle] observing post-marker stream", end="")
     while time.monotonic() < deadline:
         try:
@@ -332,9 +333,22 @@ def observe_settle(
             change_types[change_type] = change_types.get(change_type, 0) + 1
         if revision is not None:
             revisions.append(revision)
+        frame_state_keywords: dict[str, int] = {}
+        update_state_counts(frame_state_keywords, frame)
         update_state_counts(state_keywords, frame)
+        terminal_seen = any(
+            frame_state_keywords.get(key, 0) > 0 for key in ("completed", "complete", "done", "idle", "finished")
+        )
+        running_seen = any(
+            frame_state_keywords.get(key, 0) > 0 for key in ("inprogress", "in_progress", "running", "streaming", "thinking")
+        )
+        if terminal_seen and not running_seen:
+            stopped_early = True
+            progress(show_progress, "\n[settle] terminal state hint observed")
+            break
     return {
         "settle_timeout_seconds": timeout,
+        "stopped_early_on_terminal_hint": stopped_early,
         "frames_seen": frames,
         "conversation_frames_seen": conversation_frames,
         "methods_seen": methods,
@@ -460,7 +474,7 @@ def main() -> int:
     parser.add_argument("--approval-policy", default="never")
     parser.add_argument("--start-timeout", type=float, default=120.0)
     parser.add_argument("--timeout", type=float, default=120.0)
-    parser.add_argument("--settle-timeout", type=float, default=30.0)
+    parser.add_argument("--settle-timeout", type=float, default=8.0)
     parser.add_argument("--open-timeout", type=float, default=3.0)
     parser.add_argument("--read-timeout", type=float, default=10.0)
     parser.add_argument("--no-preflight", action="store_true", help="Skip conversation runtime status check.")
@@ -686,6 +700,12 @@ def main() -> int:
                 "completion_observed": bool(observed_exact),
                 "refresh_after_ok": None,
             },
+            "frontstage_status_hint": (
+                "runtime_terminal_observed"
+                if settle_diagnostics and settle_diagnostics.get("terminal_state_hint_seen")
+                and not settle_diagnostics.get("still_running_hint_seen")
+                else "runtime_visibility_delayed_or_unknown"
+            ),
             "diagnostics": {
                 "observe_timeout_seconds": args.timeout,
                 "frames_observed_total_after_start_request": observed_frame_count,

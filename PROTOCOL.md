@@ -387,9 +387,9 @@ arbitrary shell command.
 Default local command ids:
 
 ```text
-local_demo -> py run_local_demo.py
-node_c_preflight -> py run_node_c_preflight.py
-collaborative_bridge_preflight -> py run_collaborative_bridge_preflight.py
+local_demo -> current Python interpreter + run_local_demo.py
+node_c_preflight -> current Python interpreter + run_node_c_preflight.py
+collaborative_bridge_preflight -> current Python interpreter + run_collaborative_bridge_preflight.py
 ```
 
 Run one approved command task as the Host worker:

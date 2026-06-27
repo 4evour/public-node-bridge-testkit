@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
@@ -15,9 +16,9 @@ from urllib.request import Request, urlopen
 
 NODE_ID = "node-c"
 DEFAULT_COMMANDS = {
-    "local_demo": ["py", "run_local_demo.py"],
-    "node_c_preflight": ["py", "run_node_c_preflight.py"],
-    "collaborative_bridge_preflight": ["py", "run_collaborative_bridge_preflight.py"],
+    "local_demo": [sys.executable, "run_local_demo.py"],
+    "node_c_preflight": [sys.executable, "run_node_c_preflight.py"],
+    "collaborative_bridge_preflight": [sys.executable, "run_collaborative_bridge_preflight.py"],
 }
 
 
@@ -145,7 +146,7 @@ def main() -> int:
     command_id = str(execution_request.get("command_id") if isinstance(execution_request, dict) else "")
     command = commands.get(command_id)
     if command is None:
-        post_state(args.relay_url, task_id, args.node_id, "failed", token=args.token)
+        post_state(args.relay_url, task_id, args.node_id, "result_pending_review", token=args.token)
         print(json.dumps({
             "ok": False,
             "task_id": task_id,
@@ -161,14 +162,12 @@ def main() -> int:
     try:
         result = run_command(command, str(project_root), args.timeout, args.output_limit)
     except subprocess.TimeoutExpired as exc:
-        post_state(args.relay_url, task_id, args.node_id, "failed", token=args.token)
         result = {
             "exit_code": None,
             "stdout": truncate_text(exc.stdout or "", args.output_limit) if isinstance(exc.stdout, str) else "",
             "stderr": "command_timeout",
         }
     except Exception as exc:  # noqa: BLE001 - returned as task result.
-        post_state(args.relay_url, task_id, args.node_id, "failed", token=args.token)
         result = {"exit_code": None, "stdout": "", "stderr": f"{type(exc).__name__}: {exc}"}
 
     post_state(args.relay_url, task_id, args.node_id, "result_pending_review", token=args.token)

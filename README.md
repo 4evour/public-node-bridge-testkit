@@ -932,7 +932,8 @@ Allowlisted command execution requests use:
 ```
 
 The relay accepts this only when `run_project_command` is present. The Host
-worker maps `command_id` to local commands such as `py run_local_demo.py`; the
+worker maps `command_id` to local commands such as the current Python
+interpreter running `run_local_demo.py`; the
 Controller never sends raw shell strings.
 
 Collaborative relay events are written to:

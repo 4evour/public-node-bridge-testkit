@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-06-27 23:25 - 修复协作桥命令预检跨平台执行
+### 变更内容 — 更新 `run_collaborative_bridge_command_worker.py`，将默认 allowlist 命令从 Windows 专用 `py` launcher 改为当前 Python 解释器，并让命令失败时先进入 `result_pending_review` 再提交失败结果；更新 `README.md` 和 `PROTOCOL.md` 中的默认命令说明。
+### 原因 — GitHub Actions 的 Ubuntu runner 没有 `py` launcher，导致 `run_collaborative_bridge_command_preflight.py` 在 CI 中失败。
+### 影响范围 — 影响协作桥 Host allowlist worker 的默认命令和失败结果回传；不扩大 Controller 权限，不允许任意 shell 命令。
+
 ## 2026-06-27 21:34 - 将协作桥预检纳入 CI
 ### 变更内容 — 更新 `.github/workflows/local-demo.yml`，把协作桥相关脚本加入 `py_compile` 编译检查，并新增 lifecycle、audit、UI、UI form flow、state、allowlisted command 六个协作桥预检步骤。
 ### 原因 — 准备向远端主仓库提交 PR，需要让新增协作桥能力在 GitHub Actions 中被自动验证，避免只依赖本地手动运行。

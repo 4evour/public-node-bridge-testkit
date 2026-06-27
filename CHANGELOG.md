@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-06-27 21:34 - 将协作桥预检纳入 CI
+### 变更内容 — 更新 `.github/workflows/local-demo.yml`，把协作桥相关脚本加入 `py_compile` 编译检查，并新增 lifecycle、audit、UI、UI form flow、state、allowlisted command 六个协作桥预检步骤。
+### 原因 — 准备向远端主仓库提交 PR，需要让新增协作桥能力在 GitHub Actions 中被自动验证，避免只依赖本地手动运行。
+### 影响范围 — 影响 PR 和 push 时的本地 demo workflow；不改变运行时协议行为，不执行可选 Codex IPC 真实发送预检。
+
 ## 2026-06-27 01:14 - 增加 Host 真实 allowlist 命令执行
 ### 变更内容 — 更新 `node_bridge_testkit/relay.py`，新增 `run_project_command` 能力、`execution_request.kind=allowlisted_command` 校验、Controller 真实执行按钮和 Host 执行请求展示；新增 `run_collaborative_bridge_command_worker.py`，在 Host 本地执行 allowlist 命令并回传 `exit_code/stdout/stderr`；新增 `run_collaborative_bridge_command_preflight.py` 验证创建任务、Host 批准、worker 真执行 `local_demo`、Controller 读取结果；更新 `run_collaborative_bridge_ui_flow_preflight.py` 验证命令按钮创建执行请求；更新 `PROTOCOL.md` 和 `README.md` 说明 allowlist 执行边界。
 ### 原因 — 你要求前端可视化按钮对应真实可跑任务能力，但不能落成任意远程 shell 或隐藏远控。

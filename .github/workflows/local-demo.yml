@@ -14,7 +14,7 @@ jobs:
           python-version: "3.11"
       - name: Compile Python files
         run: |
-          python -m py_compile node_bridge_testkit/__init__.py node_bridge_testkit/relay.py node_bridge_testkit/mock_node.py node_bridge_testkit/node_adapter.py node_bridge_testkit/avatar_runtime.py run_local_demo.py run_node_c_preflight.py install_node_c_avatar.py run_node_c_avatar.py run_remote_relay_demo.py send_node_c_remote_probe.py send_node_c_file_probe.py send_node_c_task_package_probe.py send_node_c_desktop_manual_probe.py send_approval_gate_task_package_probe.py run_node_c_remote_client.py run_node_c_codex_cli_probe.py run_node_c_codex_ipc_discovery.py run_node_c_codex_port_owner_probe.py run_node_c_codex_ipc_artifact_probe.py run_node_c_codex_pipe_open_probe.py run_node_c_desktop_manual_client.py run_node_c_task_package_preflight.py run_approval_gate_task_package_preflight.py run_node_c_loop_readiness.py run_node_c_loop_readiness_preflight.py run_agent_handshake_card_preflight.py run_node_c_desktop_visible_preflight.py make_agent_handshake_card.py connect_node.py pull_relay_result.py run_relay_result_inbox_preflight.py run_node_b_codex_ipc_discovery.py run_node_b_codex_ipc_start_turn_probe.py run_node_b_relay_ipc_client.py run_node_b_relay_ipc_client_preflight.py send_node_b_relay_ipc_probe.py run_node_b_relay_ipc_sender_preflight.py yuanjie_acceptance_cards.py run_yuanjie_acceptance_cards_preflight.py
+          python -m py_compile node_bridge_testkit/__init__.py node_bridge_testkit/relay.py node_bridge_testkit/mock_node.py node_bridge_testkit/node_adapter.py node_bridge_testkit/avatar_runtime.py run_local_demo.py run_node_c_preflight.py install_node_c_avatar.py run_node_c_avatar.py run_remote_relay_demo.py send_node_c_remote_probe.py send_node_c_file_probe.py send_node_c_task_package_probe.py send_node_c_desktop_manual_probe.py send_approval_gate_task_package_probe.py run_node_c_remote_client.py run_node_c_codex_cli_probe.py run_node_c_codex_ipc_discovery.py run_node_c_codex_port_owner_probe.py run_node_c_codex_ipc_artifact_probe.py run_node_c_codex_pipe_open_probe.py run_node_c_desktop_manual_client.py run_node_c_task_package_preflight.py run_approval_gate_task_package_preflight.py run_node_c_loop_readiness.py run_node_c_loop_readiness_preflight.py run_agent_handshake_card_preflight.py run_node_c_desktop_visible_preflight.py make_agent_handshake_card.py connect_node.py pull_relay_result.py run_relay_result_inbox_preflight.py run_node_b_codex_ipc_discovery.py run_node_b_codex_ipc_start_turn_probe.py run_node_b_relay_ipc_client.py run_node_b_relay_ipc_client_preflight.py send_node_b_relay_ipc_probe.py run_node_b_relay_ipc_sender_preflight.py yuanjie_acceptance_cards.py run_yuanjie_acceptance_cards_preflight.py run_collaborative_bridge_preflight.py run_collaborative_bridge_audit_preflight.py run_collaborative_bridge_ui_preflight.py run_collaborative_bridge_ui_flow_preflight.py run_collaborative_bridge_state_preflight.py run_collaborative_bridge_command_worker.py run_collaborative_bridge_command_preflight.py run_collaborative_bridge_codex_ipc_backend.py run_collaborative_bridge_codex_ipc_preflight.py
       - name: Run local demo
         run: |
           python run_local_demo.py
@@ -52,3 +52,21 @@ jobs:
       - name: Run Node-B relay IPC sender preflight
         run: |
           python run_node_b_relay_ipc_sender_preflight.py
+      - name: Run collaborative bridge lifecycle preflight
+        run: |
+          python run_collaborative_bridge_preflight.py
+      - name: Run collaborative bridge audit preflight
+        run: |
+          python run_collaborative_bridge_audit_preflight.py
+      - name: Run collaborative bridge UI preflight
+        run: |
+          python run_collaborative_bridge_ui_preflight.py
+      - name: Run collaborative bridge UI form flow preflight
+        run: |
+          python run_collaborative_bridge_ui_flow_preflight.py
+      - name: Run collaborative bridge state preflight
+        run: |
+          python run_collaborative_bridge_state_preflight.py
+      - name: Run collaborative bridge command preflight
+        run: |
+          python run_collaborative_bridge_command_preflight.py
